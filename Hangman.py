@@ -158,6 +158,10 @@ class HangmanGame:
         guess = guess.lower()
 
         if len(guess) == len(self.ans):
+            if guess in [g[0] for g in self.guessed if len(g[0]) == len(self.ans)]:
+                print(f'\033[34m♻ 你已经猜过单词 {guess} 了！\033[0m')
+                sleep(1)
+                return
             if guess == self.ans:
                 self.combo()
                 self.won = True

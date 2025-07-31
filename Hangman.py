@@ -118,7 +118,7 @@ class HangmanGame:
 
         print(self.display_hangman())
 
-        print(f'\n当前单词: {self.display_word()} ({self.definition})')
+        print(f'\n当前单词({len(self.ans)}): {self.display_word()} ({self.definition})')
 
         if self.guessed:
             formatted = []
@@ -155,15 +155,31 @@ class HangmanGame:
 
     def make_guess(self, guess):
         """处理用户猜测"""
-        guess = guess.lower()
+        if guess == '\t':
+            return
+        guess = guess.strip().lower()
 
+        # 处理整个单词的猜测
         if len(guess) == len(self.ans):
             if guess in [g[0] for g in self.guessed if len(g[0]) == len(self.ans)]:
                 print(f'\033[34m♻ 你已经猜过单词 {guess} 了！\033[0m')
                 sleep(1)
                 return
+
+            score = 0
+            for i, c in enumerate(guess):
+                if self.ans[i] == c and (c, True) not in self.guessed:
+                    score += 1
+                    if guess != self.ans:  # 防止误给连击奖励
+                        self.guessed.append((c, True))
+            if score > 1:
+                print(f'\033[32m[命中奖励] +{score - 1}分\033[0m')
+                self.score += score - 1
+                sleep(1)
+
             if guess == self.ans:
                 self.combo()
+                self.guessed.append((guess, True))
                 self.won = True
                 self.game_over = True
             else:
@@ -171,12 +187,9 @@ class HangmanGame:
                 sleep(1)
                 self.guessed.append((guess, False))
                 self.wrong += 1
-
-            for i, c in enumerate(guess):
-                if self.ans[i] == c and (c, True) not in self.guessed:
-                    self.guessed.append((c, True))
             return
 
+        # 处理单个字母的猜测
         if guess in [g[0] for g in self.guessed if len(g[0]) == 1]:
             print(f'\033[34m♻ 你已经猜过字母 {guess} 了！\033[0m')
             sleep(1)
@@ -201,13 +214,13 @@ class HangmanGame:
 
     def combo(self):
         if self.guessed and self.guessed[-1][1]:
-            print('\033[32m[连击奖励] +1分\033[0m')
+            print(f'\033[32m[连击奖励] +1分\033[0m')
             self.score += 1
 
     def round_end(self, round_num):
         """游戏一轮结束"""
         if self.won:
-            print(f'\n🎉 猜对了！恭喜本轮胜利！({self.ans} - {self.definition})')
+            print(f'🎉 猜对了！恭喜本轮胜利！({self.ans} - {self.definition})')
             if self.wrong < self.wrong_max:
                 print(f'\033[32m[错误次数结余] +{self.wrong_max - self.wrong}分\033[0m')
                 self.score += self.wrong_max - self.wrong
@@ -217,7 +230,7 @@ class HangmanGame:
                 self.score += len(self.ans)
 
         else:
-            print('\n💀 本轮游戏失败！你被绞死了！')
+            print('💀 本轮游戏失败！你被绞死了！')
             print(f'正确答案是: {self.ans} ({self.definition})')
             print(f'\033[31m[本轮失败] +0分\033[0m')
 
@@ -245,23 +258,26 @@ class HangmanGame:
                 # 显示游戏状态
                 self.display_info(round_num)
 
-                # 用户输入
-                while True:
-                    guess = input(f'请输入1个字母/整个单词({len(self.ans)}): ').strip()
-                    if self.check_guess(guess):
-                        break
-
-                    print('\033[1A\033[2K\r输入有误！', end='')
-                    sleep(1)
-                    print('\033[2K\r', end='')
-
-                # 处理猜测
-                self.make_guess(guess)
-
                 # 检查游戏状态
                 if self.game_over:
                     user_input = self.round_end(round_num)
                     break
+                else:
+                    # 用户输入
+                    while True:
+                        guess = input(f'(Tab+回车↩︎ 有偿提示)请输入单个字母/整个单词: ')
+                        if self.check_guess(guess.strip()):
+                            break
+                        elif guess == '\t':
+                            self.hint()
+                            break
+
+                        print('\033[1A\033[2K\r输入有误！', end='')
+                        sleep(1)
+                        print('\033[2K\r', end='')
+
+                    # 处理猜测
+                    self.make_guess(guess)
 
             # 检查是否提前结束游戏
             if '\t' in user_input:
@@ -270,8 +286,28 @@ class HangmanGame:
             self.reset()
 
         print('\n游戏结束！')
-        print(f'游戏共进行{round_num + 1}轮，总分: {self.score}，每轮平均得分: {self.score / (round_num + 1):.2f}')
+        avg = self.score / (round_num + 1)
+        print(f'游戏共进行{round_num + 1}轮，总分: {self.score}，每轮平均得分: {avg:.2f}，', end='')
+        print(f'{'一般' if avg < 10 else '不错' if avg < 13 else '优秀' if avg < 16 else '厉害'}')
         input('\n回车↩︎ 退出...')
+
+    def hint(self):
+        """提示"""
+        lib = [x for x in self.ans if x not in [g[0] for g in self.guessed if len(g[0]) == 1]]
+        if self.score < 2:
+            print(f'\033[31m[提示失败] 分数不足\033[0m')
+            sleep(1)
+            return
+        if not lib:
+            print(f'\033[31m[提示失败] 已无字母可提示\033[0m')
+            sleep(1)
+            return
+
+        c = random.sample(lib, 1)[0]
+        print(f'\033[34m[有偿提示] -2分')
+        print(f'提示字母: {c}\033[0m')
+        self.score -= 2
+        input('\n回车↩︎ 继续...')
 
 def main():
     """主函数"""

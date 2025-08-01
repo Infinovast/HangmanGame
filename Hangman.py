@@ -54,6 +54,7 @@ class HangmanGame:
         """重置游戏状态"""
         if totally:
             self.answers = random.sample(list(self.word_dict.keys()), self.rounds)
+            self.score = 0
         self.ans = self.answers.pop()  # 从词典中随机选择一个单词
         self.definition = self.word_dict[self.ans]
         self.wrong = 0
@@ -243,7 +244,7 @@ class HangmanGame:
 
     def play(self):
         """主游戏循环"""
-        print('\033[1J', '\033[1;1H', sep='', end='')  # 清屏
+        print('\033[2J', '\033[1;1H', sep='', end='')  # 清屏
         print(f'欢迎来到 Hangman Game!\n{'=' * 40}')
         print(f'规则：\n猜出隐藏的英文单词，字母不分大小写，有{self.wrong_max}次错误机会。')
         print(f'游戏共{self.rounds}轮，全部结束后计算每轮平均分。\n')
@@ -280,7 +281,7 @@ class HangmanGame:
                     self.make_guess(guess)
 
             # 检查是否提前结束游戏
-            if '\t' in user_input:
+            if '\t' 在 user_input:
                 break
 
             self.reset()
@@ -288,8 +289,8 @@ class HangmanGame:
         print('\n游戏结束！')
         avg = self.score / (round_num + 1)
         print(f'游戏共进行{round_num + 1}轮，总分: {self.score}，每轮平均得分: {avg:.2f}，', end='')
-        print(f'{'一般' if avg < 10 else '不错' if avg < 13 else '优秀' if avg < 16 else '厉害'}')
-        input('\n回车↩︎ 退出...')
+        print(f'{'一般' if avg < 10 else '不错' if avg < 13 else '厉害' if avg < 16 else '优秀' if avg < 18 else '顶级'}')
+        return input('\n回车↩︎ 继续 / Tab+回车↩︎ 结束游戏...')
 
     def hint(self):
         """提示"""
@@ -312,7 +313,8 @@ class HangmanGame:
 def main():
     """主函数"""
     game = HangmanGame()
-    game.play()
+    while '\t' not in game.play():
+        game.reset(totally=True)
 
 
 if __name__ == '__main__':

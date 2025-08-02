@@ -1,3 +1,4 @@
+import os
 import random
 import configparser
 from time import sleep
@@ -31,6 +32,7 @@ class HangmanGame:
         self.guessed = []
         self.game_over = False
         self.won = False
+        self.high_score = 0
         self.score = 0
         
         # 重置游戏状态
@@ -55,6 +57,7 @@ class HangmanGame:
         if totally:
             self.answers = random.sample(list(self.word_dict.keys()), self.rounds)
             self.score = 0
+            os.system('cls')
         self.ans = self.answers.pop()  # 从词典中随机选择一个单词
         self.definition = self.word_dict[self.ans]
         self.wrong = 0
@@ -171,11 +174,12 @@ class HangmanGame:
             for i, c in enumerate(guess):
                 if self.ans[i] == c and (c, True) not in self.guessed:
                     score += 1
-                    if guess != self.ans:  # 防止误给连击奖励
+                    if guess != self.ans:  # 对的字母也单独加入guessed，防止误给连击奖励
                         self.guessed.append((c, True))
             if score > 1:
-                print(f'\033[32m[命中奖励] +{score - 1}分\033[0m')
-                self.score += score - 1
+                no_combo = 0 if self.guessed and self.guessed[-1][1] else 1
+                print(f'\033[32m[命中奖励] +{score - no_combo}分\033[0m')
+                self.score += score - no_combo
                 sleep(1)
 
             if guess == self.ans:
@@ -235,17 +239,19 @@ class HangmanGame:
             print(f'正确答案是: {self.ans} ({self.definition})')
             print(f'\033[31m[本轮失败] +0分\033[0m')
 
-        if round_num < self.rounds - 1:
+        if round_num < self.rounds - 1:  # 防止玩家直接结束了最后一轮看不见结果
             print(f'\n第{round_num + 1}轮游戏结束！')
             print(f'目前总分: {self.score}，每轮平均得分: {self.score / (round_num + 1):.1f}')
             return input('\n回车↩︎ 继续 / Tab+回车↩︎ 结束游戏...')
         else:
+            print(f'\n最后一轮游戏结束！')
+            input('\n回车↩︎ 继续...')
             return '\t'
 
     def play(self):
         """主游戏循环"""
         print('\033[2J', '\033[1;1H', sep='', end='')  # 清屏
-        print(f'欢迎来到 Hangman Game!\n{'=' * 40}')
+        print(f'欢迎来到 Hangman Game!\n历史高分: {self.high_score}\n{'=' * 40}')
         print(f'规则：\n猜出隐藏的英文单词，字母不分大小写，有{self.wrong_max}次错误机会。')
         print(f'游戏共{self.rounds}轮，全部结束后计算每轮平均分。\n')
         print(f'注意：\n游戏配置在exe同目录下的settings.ini中，可自定义词库等游戏设置，删除可恢复默认设置。')
@@ -281,14 +287,15 @@ class HangmanGame:
                     self.make_guess(guess)
 
             # 检查是否提前结束游戏
-            if '\t' 在 user_input:
+            if '\t' in user_input:
                 break
 
             self.reset()
 
         print('\n游戏结束！')
+        self.high_score = max(self.score, self.high_score)
         avg = self.score / (round_num + 1)
-        print(f'游戏共进行{round_num + 1}轮，总分: {self.score}，每轮平均得分: {avg:.2f}，', end='')
+        print(f'游戏共进行{round_num + 1}轮，总分: {self.score}/最高{self.high_score}，每轮平均得分: {avg:.2f}，', end='')
         print(f'{'一般' if avg < 10 else '不错' if avg < 13 else '厉害' if avg < 16 else '优秀' if avg < 18 else '顶级'}')
         return input('\n回车↩︎ 继续 / Tab+回车↩︎ 结束游戏...')
 
